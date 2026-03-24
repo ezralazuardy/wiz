@@ -43,7 +43,7 @@ struct ContentView: View {
             VStack {
                 Spacer().frame(height: 50)
 
-                Text("Wiz Remote")
+                Text("Philips Wiz")
                     .font(.custom("Avenir-Heavy", size: 32))
                     .foregroundColor(.white)
                     .padding(.bottom, 40)

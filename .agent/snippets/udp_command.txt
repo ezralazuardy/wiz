@@ -1,0 +1,3 @@
+# UDP command template for Wiz bulb
+
+echo -n '{"id":1,"method":"setState","params":{"state":true}}' | nc -u -w 1 <IP_ADDRESS> 38899

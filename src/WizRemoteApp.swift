@@ -25,7 +25,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 let size = NSSize(width: 600, height: 450)
                 window.setContentSize(size)
                 window.center()
-                window.title = "Smart Remote App"
+                let defaultTitle = "Philips Wiz"
+        let title = ProcessInfo.processInfo.environment["APP_TITLE"] ?? defaultTitle
+        window.title = title
                 window.styleMask.insert(.resizable) // Optional — remove to lock size
             }
         }
