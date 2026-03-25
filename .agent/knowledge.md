@@ -9,7 +9,7 @@
   - `DeviceListView`: Grid view of devices in cards
   - `DeviceDetailView`: Individual device control with on/off toggle and brightness slider (for smart bulbs)
   - `DeviceCard`: Styled card component for device list
-  - `SettingsView`: Manage rooms, auto-sync toggle, app animations toggle, and data reset
+  - `SettingsView`: Manage rooms, auto-sync, app animations, menu bar icon, iCloud sync, and data reset
   - `AddDeviceView`: Modal for scanning and adding new devices with device type detection
 - **Device Types**: Support for multiple Wiz device types:
   - Smart Bulb (with brightness control)
@@ -21,26 +21,32 @@
 - **Device Detection**: Automatically detects device type using `getSystemConfig` API and module name parsing
 - **Audio Feedback**: Plays `on.wav`/`off.wav` located in the bundle (respects App Animations setting).
 - **Persistence**: Devices and rooms saved to UserDefaults, loaded on app launch.
+- **iCloud Sync**: Optional sync via `NSUbiquitousKeyValueStore` for devices, rooms, and key app settings.
 - **UI Flow**:
   - Launch → DeviceListView (All Devices or Room)
   - Click device → DeviceDetailView with controls (brightness slider for bulbs)
   - Click "All Devices"/Room → Return to list view
   - Add Device → Scan → Select type → Add with custom name
 - **Device States**:
-  - Syncing (yellow): Initial state before first status check
-  - Connected (green): Device is online
-  - Disconnected (red/gray): Device is offline or unreachable
-- **Auto Sync**: Optional feature to automatically sync device status every 3 seconds (configurable, default enabled)
+  - `Connected`/`Disconnected` reflects network reachability.
+  - `On`/`Off` reflects device power state and is tracked separately (especially in menu bar status).
+  - Detail page shows blue `Refreshing` while explicit/initial fetch is running.
+- **Auto Sync**: Syncs status every 3 seconds (default enabled, configurable in Settings).
 - **App Animations**: Toggle setting (default enabled) for smooth UI transitions and effects
 - **Room Management**: 
-  - Create rooms with custom icons (8 icon options)
+  - Create rooms with custom icons (house, sofa, bed.double, cooktop, shower, car, tree, gamecontroller.fill)
   - Assign devices to rooms
   - Filter devices by room
   - Delete rooms (blocked if devices still assigned)
-- **Brightness Control**: Smart bulbs support brightness adjustment via slider (0-100%), disabled when offline/syncing
+- **Brightness Control**: Smart bulbs support brightness adjustment via slider (10-100%), disabled when offline/syncing/toggling
+- **Menu Bar**:
+  - Supports quick toggle and brightness presets.
+  - `Open Wiz` restores the main window reliably.
+  - Power status text in menu bar is based on cached/refreshed pilot state, not connectivity alone.
 - **Limitations**:
   - Hard-coded IP range; requires modification for other networks.
   - Relies on `nc` being present on the system.
+  - iCloud sync requires valid iCloud capability/entitlements and proper code signing.
 - **Build Process**: Run `./build.sh` to create `dist/Wiz.app`. Kill running app with `pkill -f "Wiz"` before relaunching.
 - **Recent Changes**:
   - Renamed `WizRemoteApp.swift` → `WizApp.swift`
@@ -49,10 +55,11 @@
   - Fixed startup delay by running discovery in background
   - Removed checkmark icons from filter buttons
   - Added delete room functionality in sidebar and settings
-  - Added auto-sync toggle in settings (interval changed from 30s to 3s)
-  - Added syncing state indicator (yellow) for devices
+  - Added auto-sync toggle in settings (interval changed from 30s to 3s, now default enabled)
   - Added multi-device type support with auto-detection
   - Added brightness slider for smart bulbs
   - Added App Animations toggle setting
   - Improved Add Device modal with card styling and device counter
   - Removed redundant device name text from detail view
+  - Added iCloud sync toggle for devices/rooms/settings
+  - Improved detail status/toggle reliability and menu bar power status accuracy

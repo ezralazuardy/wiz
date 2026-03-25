@@ -24,27 +24,25 @@ This repository includes an **.agent** directory that holds knowledge and instru
 
 ## Recent Major Changes
 
-### Multi-Device Type Support
-- Added support for Smart Bulb, Smart Plug, Smart Switch, and Smart Strip
-- Device type auto-detection via `getSystemConfig` API
-- Each device type has its own icon and capabilities
-- Smart bulbs include brightness slider control
+### Connectivity & Status Reliability
+- Separated power state (`ON/OFF`) from connectivity (`Connected/Disconnected`) in sync logic.
+- Device is marked `Disconnected` only after repeated no-response checks and network reachability verification.
+- Menu bar status now reflects real power state (`On/Off`) for connected devices, and `Disconnected` only when unreachable.
 
-### UI Improvements
-- Removed redundant device name text from detail view (now shown in navigation title only)
-- Device list shows device type instead of IP address
-- Card-based layout in Add Device modal with device counter (e.g., "Smart Bulb #1")
-- Consistent button placement at bottom right in all modals
+### Device Detail UX
+- Detail page shows blue `Refreshing` status while initial/explicit refresh is in progress.
+- Toggle flow now avoids races with auto-sync (prevents flaky button state after rapid updates).
+- Brightness slider minimum is now `10%` for smart bulbs.
+- Slider value is synced when brightness is changed from menu bar presets.
 
-### Settings
-- Auto-sync interval changed from 30s to 3s for better responsiveness
-- Added "App Animations" toggle (default enabled) for UI animation control
-- Room icons reduced to 8 options (removed car and books.vertical)
+### Settings & Sync
+- Auto Sync default is now enabled (`3s` interval).
+- Added `Sync Data to iCloud` toggle in Settings.
+- iCloud sync now covers devices, rooms, and key app settings (auto sync, menu bar, animations, permissions flags) via `NSUbiquitousKeyValueStore`.
 
-### Data Model
-- `WizDevice` now includes `type` (DeviceType enum) and `brightness` (Int 0-100) fields
-- Device type detection in discovery process
-- Brightness control API for smart bulbs
+### Menu Bar & Window Behavior
+- `Open Wiz` now reliably restores the hidden/minimized main window.
+- In menu bar mode, closing the window hides it instead of terminating the app window lifecycle.
 
 ## Example Usage
 - An agent can read `.agent/knowledge.md` to answer "What tech stack does this project use?".
