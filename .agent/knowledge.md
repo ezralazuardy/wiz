@@ -1,11 +1,58 @@
 ## Project Knowledge
 
 - **Tech Stack**: Swift 5, SwiftUI, macOS (AppKit integration), AVFoundation for sound playback, `nc` (netcat) for UDP communication.
-- **Architecture**: MVVM‑like pattern – `BulbService` handles networking and state, `ContentView` presents UI and interacts with the service via `@StateObject`. `WizRemoteApp` sets up the application window.
-- **Networking**: Uses UDP broadcast to discover Wiz bulbs on the local subnet (`192.168.1.*`). Commands are sent via `nc -u` to port `38899`.
-- **Audio Feedback**: Plays `on.wav`/`off.wav` located in the bundle.
+- **UI Framework**: Uses [SF Symbols](https://developer.apple.com/sf-symbols/) for all icons throughout the app (lightbulb.fill, trash, arrow.clockwise, etc.)
+- **Architecture**: MVVM-like pattern – `DeviceManager` handles device/room management, `BulbService` handles networking, `ContentView` presents UI. `WizApp.swift` is the main entry point.
+- **Key Components**:
+  - `DeviceManager`: Manages devices, rooms, discovery, persistence via UserDefaults, and auto-sync
+  - `SidebarView`: Filter by "All Devices" or specific rooms, with delete room functionality
+  - `DeviceListView`: Grid view of devices in cards
+  - `DeviceDetailView`: Individual device control with on/off toggle and brightness slider (for smart bulbs)
+  - `DeviceCard`: Styled card component for device list
+  - `SettingsView`: Manage rooms, auto-sync toggle, app animations toggle, and data reset
+  - `AddDeviceView`: Modal for scanning and adding new devices with device type detection
+- **Device Types**: Support for multiple Wiz device types:
+  - Smart Bulb (with brightness control)
+  - Smart Plug
+  - Smart Switch
+  - Smart Strip
+  - Unknown (fallback)
+- **Networking**: Uses UDP to discover Wiz devices on the local subnet (`192.168.1.*`). Commands are sent via `nc -u` to port `38899`.
+- **Device Detection**: Automatically detects device type using `getSystemConfig` API and module name parsing
+- **Audio Feedback**: Plays `on.wav`/`off.wav` located in the bundle (respects App Animations setting).
+- **Persistence**: Devices and rooms saved to UserDefaults, loaded on app launch.
+- **UI Flow**:
+  - Launch → DeviceListView (All Devices or Room)
+  - Click device → DeviceDetailView with controls (brightness slider for bulbs)
+  - Click "All Devices"/Room → Return to list view
+  - Add Device → Scan → Select type → Add with custom name
+- **Device States**:
+  - Syncing (yellow): Initial state before first status check
+  - Connected (green): Device is online
+  - Disconnected (red/gray): Device is offline or unreachable
+- **Auto Sync**: Optional feature to automatically sync device status every 3 seconds (configurable, default enabled)
+- **App Animations**: Toggle setting (default enabled) for smooth UI transitions and effects
+- **Room Management**: 
+  - Create rooms with custom icons (8 icon options)
+  - Assign devices to rooms
+  - Filter devices by room
+  - Delete rooms (blocked if devices still assigned)
+- **Brightness Control**: Smart bulbs support brightness adjustment via slider (0-100%), disabled when offline/syncing
 - **Limitations**:
-  - Hard‑coded IP range; requires modification for other networks.
+  - Hard-coded IP range; requires modification for other networks.
   - Relies on `nc` being present on the system.
-  - No persistence of bulb IP across launches.
-- **Future Enhancements** (potential): dynamic subnet detection, color temperature control, UI theme support.
+- **Build Process**: Run `./build.sh` to create `dist/Wiz.app`. Kill running app with `pkill -f "Wiz"` before relaunching.
+- **Recent Changes**:
+  - Renamed `WizRemoteApp.swift` → `WizApp.swift`
+  - Added room management with device filtering
+  - Added DeviceListView with card-based grid layout
+  - Fixed startup delay by running discovery in background
+  - Removed checkmark icons from filter buttons
+  - Added delete room functionality in sidebar and settings
+  - Added auto-sync toggle in settings (interval changed from 30s to 3s)
+  - Added syncing state indicator (yellow) for devices
+  - Added multi-device type support with auto-detection
+  - Added brightness slider for smart bulbs
+  - Added App Animations toggle setting
+  - Improved Add Device modal with card styling and device counter
+  - Removed redundant device name text from detail view

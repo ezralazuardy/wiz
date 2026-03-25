@@ -5,7 +5,7 @@ class BulbService: ObservableObject {
     @Published var bulbIP: String?
     @Published var boxColor: Color = .red
     @Published var statusMessage: String = ""
-    
+
     //Change Status Color
     func turnGreen() {
         boxColor = .green
@@ -14,47 +14,57 @@ class BulbService: ObservableObject {
         boxColor = .red
     }
 
-    // Light On
-    func lightOn() {
+    @discardableResult
+    private func sendPowerCommand(isOn: Bool, brightness: Int? = nil) -> Bool {
         guard let ip = bulbIP else {
             statusMessage = "Bulb not connected. Click on reconnect first ❌"
             print("Bulb not connected. Click on connect.")
-            return
+            return false
         }
 
-//        let command = #"""
-//        echo -n "{\"id\":1,\"method\":\"setState\",\"params\":{\"state\":true}}" | nc -u -w 1 \#(ip) 38899
-//        """#
-        
-        let command = #"""
-        echo -n "{\"id\":1,\"method\":\"setPilot\",\"params\":{\"sceneId\":11,\"dimming\":100}}" | nc -u -w 1 \(ip) 38899
-        """#
-        
+        let command: String
+        if isOn {
+            let dimmingValue = max(0, min(100, brightness ?? 100))
+            command = #"""
+                echo -n "{\"id\":1,\"method\":\"setPilot\",\"params\":{\"state\":true,\"dimming\":\#(dimmingValue)}}" | nc -u -w 1 \#(ip) 38899
+                """#
+        } else {
+            command = #"""
+                echo -n "{\"id\":1,\"method\":\"setPilot\",\"params\":{\"state\":false}}" | nc -u -w 1 \#(ip) 38899
+                """#
+        }
+
         let output = runShellCommand(command)
         print("Command output: \(output)")
+        return output.contains("\"success\":true") || output.contains("\"result\"")
+    }
+
+    func setPower(isOn: Bool, brightness: Int? = nil, completion: @escaping (Bool) -> Void) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let success = self.sendPowerCommand(isOn: isOn, brightness: brightness)
+            DispatchQueue.main.async {
+                self.statusMessage = isOn ? "Light turned ON 💡" : "Light turned OFF 🌑"
+                completion(success)
+            }
+        }
+    }
+
+    // Light On
+    func lightOn(brightness: Int? = nil) {
+        _ = sendPowerCommand(isOn: true, brightness: brightness)
         statusMessage = "Light turned ON 💡"
     }
-    
+
     // Light Off
     func lightOff() {
-        guard let ip = bulbIP else {
-            statusMessage = "Bulb not connected. Click on reconnect first ❌"
-            print("Bulb not connected. Click on connect.")
-            return
-        }
-
-        let command = #"""
-        echo -n "{\"id\":1,\"method\":\"setState\",\"params\":{\"state\":false}}" | nc -u -w 1 \#(ip) 38899
-        """#
-        let output = runShellCommand(command)
-        print("Command output: \(output)")
+        _ = sendPowerCommand(isOn: false)
         statusMessage = "Light turned OFF 🌑"
     }
 
     // Connect to the bulb by scanning IPs through the network
     func connectBulb() {
         statusMessage = "Scanning for bulb on Wi-Fi... 🔍"
-        
+
         let base = "192.168.1"
         let range = 2..<255
         let group = DispatchGroup()
@@ -66,8 +76,8 @@ class BulbService: ObservableObject {
 
             DispatchQueue.global().async {
                 let testCommand = #"""
-                echo -n "{\"id\":1,\"method\":\"getProp\",\"params\":[\"power\"]}" | nc -u -w 1 \#(ip) 38899
-                """#
+                    echo -n "{\"id\":1,\"method\":\"getProp\",\"params\":[\"power\"]}" | nc -u -w 1 \#(ip) 38899
+                    """#
                 let response = self.runShellCommand(testCommand)
 
                 if response.contains("method") {

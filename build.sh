@@ -13,10 +13,15 @@ fi
 swiftc -o dist/Wiz src/*.swift -framework SwiftUI -framework AppKit -framework AVFoundation
 
 # Create the app bundle structure
-mkdir -p dist/Wiz.app/Contents/{MacOS,Resources}
+mkdir -p dist/Wiz.app/Contents/MacOS
+mkdir -p dist/Wiz.app/Contents/Resources
+
+# Copy the executable into the app bundle
 cp dist/Wiz dist/Wiz.app/Contents/MacOS/
-# Clean up the top‑level executable after it has been bundled
+
+# Clean up the top-level executable after it has been bundled
 rm -f dist/Wiz
+
 # Generate .icns icon from the PNG using iconutil
 ICON_SRC=src/Assets.xcassets/AppIcon.appiconset/wizmac.png
 ICONSET_DIR=dist/icon.iconset
@@ -34,7 +39,7 @@ iconutil -c icns "$ICONSET_DIR" -o dist/Wiz.app/Contents/Resources/Wiz.icns
 # Clean up temporary iconset folder
 rm -rf "$ICONSET_DIR"
 
-# Write minimal Info.plist
+# Write Info.plist with network permissions
 cat > dist/Wiz.app/Contents/Info.plist <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -46,6 +51,20 @@ cat > dist/Wiz.app/Contents/Info.plist <<'EOF'
     <key>CFBundleIconFile</key><string>Wiz</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>LSMinimumSystemVersion</key><string>12.0</string>
+    <key>NSLocalNetworkUsageDescription</key><string>Wiz needs access to your local network to discover and control your smart devices.</string>
+</dict>
+</plist>
+EOF
+
+# Write entitlements file for sandbox permissions
+cat > dist/Wiz.app/Contents/Resources/Wiz.entitlements <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.app-sandbox</key><true/>
+    <key>com.apple.security.network.client</key><true/>
+    <key>com.apple.security.network.server</key><true/>
 </dict>
 </plist>
 EOF
