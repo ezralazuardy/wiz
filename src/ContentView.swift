@@ -96,18 +96,6 @@ struct ContentView: View {
             if !permissionsChecked {
                 showingPermissionsOnboarding = true
             }
-
-            // Setup keyboard shortcut for menu bar toggle (Cmd + /)
-            NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                if event.modifierFlags.contains(.command) && event.characters == "/" {
-                    // Toggle menu bar
-                    let defaults = UserDefaults.standard
-                    let currentValue = defaults.bool(forKey: "menuBarEnabled")
-                    defaults.set(!currentValue, forKey: "menuBarEnabled")
-                    return nil  // Consume the event
-                }
-                return event
-            }
         }
         .task {
             // Delay discovery slightly to allow UI to fully render first
@@ -395,6 +383,10 @@ struct DeviceDetailView: View {
         return device.isConnected ? "Connected" : "Disconnected"
     }
 
+    private var supportsBrightnessControl: Bool {
+        supportsBrightness(for: device.type)
+    }
+
     var body: some View {
         ZStack {
             // Base gradient (blue default)
@@ -464,8 +456,8 @@ struct DeviceDetailView: View {
                 .disabled(isToggleButtonDisabled)
                 .opacity(isToggleButtonDisabled ? 0.5 : 1.0)
 
-                // Brightness slider for smart bulbs
-                if device.type == .smartBulb {
+                // Brightness slider for smart bulbs and smart strips
+                if supportsBrightnessControl {
                     VStack(spacing: 8) {
                         HStack {
                             Image(systemName: "sun.min.fill")
@@ -702,7 +694,7 @@ struct DeviceDetailView: View {
         previousConnection: Bool,
         updatedDevice: inout WizDevice
     ) {
-        guard updatedDevice.type == .smartBulb else { return }
+        guard supportsBrightness(for: updatedDevice.type) else { return }
 
         let sliderBrightness = clampedBrightness(Int(brightness.rounded()))
         let connectionChanged = previousConnection != updatedDevice.isConnected
@@ -729,7 +721,7 @@ struct DeviceDetailView: View {
     }
 
     private func syncSliderFromDeviceBrightness(_ newBrightness: Int) {
-        guard device.type == .smartBulb else { return }
+        guard supportsBrightnessControl else { return }
         guard !isAdjustingBrightness else { return }
         guard !isEditingBrightnessSlider else { return }
         guard !isToggleInFlight else { return }
@@ -741,7 +733,7 @@ struct DeviceDetailView: View {
     }
 
     private func handleExternalBrightnessNotification(_ notification: Notification) {
-        guard device.type == .smartBulb else { return }
+        guard supportsBrightnessControl else { return }
         guard let userInfo = notification.userInfo else { return }
         guard let deviceID = userInfo["deviceID"] as? UUID, deviceID == device.id else { return }
         guard let newBrightness = userInfo["brightness"] as? Int else { return }
@@ -751,6 +743,10 @@ struct DeviceDetailView: View {
 
     private func clampedBrightness(_ value: Int) -> Int {
         max(minimumBrightness, min(100, value))
+    }
+
+    private func supportsBrightness(for type: DeviceType) -> Bool {
+        type == .smartBulb || type == .smartStrip
     }
 
     private func toggleLight() {
@@ -778,7 +774,9 @@ struct DeviceDetailView: View {
         let service = BulbService()
         service.bulbIP = latestDevice.ipAddress
         let targetBrightness =
-            latestDevice.type == .smartBulb ? clampedBrightness(Int(brightness.rounded())) : nil
+            supportsBrightness(for: latestDevice.type)
+            ? clampedBrightness(Int(brightness.rounded()))
+            : nil
 
         service.setPower(isOn: newState, brightness: targetBrightness) { success in
             if success {

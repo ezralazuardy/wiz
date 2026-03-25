@@ -5,6 +5,7 @@
 //  Created by Aditya Bhadang on 21/05/25.
 //
 
+import AppKit
 import SwiftUI
 
 // Notification names for cross-module communication
@@ -20,6 +21,20 @@ struct WizApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+        }
+        .commands {
+            CommandMenu("Wiz") {
+                Button("Toggle Sidebar") {
+                    appDelegate.toggleSidebar()
+                }
+                .keyboardShortcut("/", modifiers: [.command])
+
+                Divider()
+
+                Button("Toggle Menu Bar Icon") {
+                    appDelegate.toggleMenuBarEnabled()
+                }
+            }
         }
     }
 }
@@ -110,6 +125,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Observable
         )
     }
 
+    @objc func toggleMenuBarEnabled() {
+        let defaults = UserDefaults.standard
+        let currentValue = defaults.bool(forKey: "menuBarEnabled")
+        defaults.set(!currentValue, forKey: "menuBarEnabled")
+    }
+
+    @objc func toggleSidebar() {
+        NSApp.sendAction(#selector(NSSplitViewController.toggleSidebar(_:)), to: nil, from: nil)
+    }
+
     @objc func devicesDidChange() {
         refreshMenuBarIfNeeded()
     }
@@ -185,8 +210,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Observable
                     statusItem.isEnabled = false
                     menu.addItem(statusItem)
 
-                    // Add brightness info and presets for smart bulbs
-                    if device.type == .smartBulb && device.isConnected {
+                    // Add brightness info and presets for devices with dimming support.
+                    if (device.type == .smartBulb || device.type == .smartStrip)
+                        && device.isConnected
+                    {
                         let brightnessItem = NSMenuItem(
                             title: "    Brightness: \(device.brightness)%",
                             action: nil,
@@ -273,7 +300,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, Observable
 
                 if newState {
                     // Turn ON
-                    if device.type == .smartBulb {
+                    if device.type == .smartBulb || device.type == .smartStrip {
                         let brightnessValue = brightness ?? device.brightness
                         print("DEBUG: Menu bar - Turning ON with brightness: \(brightnessValue)")
                         service.lightOn(brightness: brightnessValue)
